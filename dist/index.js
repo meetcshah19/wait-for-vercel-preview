@@ -140,7 +140,7 @@ const waitForStatus = async ({
 
   for (let i = 0; i < iterations; i++) {
     try {
-      const statuses = await octolkit.rest.repos.listDeploymentStatuses({
+      const statuses = await octokit.rest.repos.listDeploymentStatuses({
         owner,
         repo,
         deployment_id,
