@@ -364,7 +364,7 @@ const run = async () => {
     console.log(JSON.stringify(octokit.rest.repos.listDeploymentStatuses({
       owner,
       repo,
-      deployment_id,
+      deployment_id: deployment.id,
     })));
 
     const status = await waitForStatus({
