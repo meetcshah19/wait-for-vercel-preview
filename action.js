@@ -353,13 +353,14 @@ const run = async () => {
       core.setFailed('no vercel deployment found, exiting...');
       return;
     }
-    console.log("url regex:",URL_REGEX)
+    console.log("url regex:",URL_REGEX);
+    
     consolg.log(JSON.stringify(octolkit.rest.repos.listDeploymentStatuses({
       owner,
       repo,
       deployment_id,
     })));
-    
+
     const status = await waitForStatus({
       owner,
       repo,
