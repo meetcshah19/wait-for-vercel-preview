@@ -361,7 +361,7 @@ const run = async () => {
     }
     console.log("url regex:",URL_REGEX);
 
-    console.log(JSON.stringify(octolkit.rest.repos.listDeploymentStatuses({
+    console.log(JSON.stringify(octokit.rest.repos.listDeploymentStatuses({
       owner,
       repo,
       deployment_id,
