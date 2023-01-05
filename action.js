@@ -1,4 +1,4 @@
-// @ts-check
+// @ts-nocheck
 // Dependencies are compiled using https://github.com/vercel/ncc
 const core = require('@actions/core');
 const github = require('@actions/github');
@@ -122,6 +122,8 @@ const waitForStatus = async ({
   maxTimeout,
   allowInactive,
   checkIntervalInMilliseconds,
+  awaitAll,
+  urlRegex
 }) => {
   const octokit = new github.getOctokit(token);
   const iterations = calculateIterations(
@@ -131,35 +133,50 @@ const waitForStatus = async ({
 
   for (let i = 0; i < iterations; i++) {
     try {
-      const statuses = await octokit.rest.repos.listDeploymentStatuses({
+      const statuses = await octolkit.rest.repos.listDeploymentStatuses({
         owner,
         repo,
         deployment_id,
       });
+      console.log(statuses);
+      if (!awaitAll) {
+        const status = statuses.data.forEach(s => {
+          if (urlRegex.test(s.target_url)) {
+            return s;
+          }
+        });
+        
+        if (!status) {
+          throw new StatusError('No status was available');
+        }
 
-      const status = statuses.data.length > 0 && statuses.data[0];
+        if (status && allowInactive === true && status.state === 'inactive') {
+          return status;
+        }
 
-      if (!status) {
-        throw new StatusError('No status was available');
+        if (status && status.state !== 'success') {
+          throw new StatusError('No status with state "success" was available');
+        }
+
+        if (status && status.state === 'success') {
+          return status;
+        }
+      } else {
+        const successStatuses = statuses.data.filter(status => status.state === 'success');
+        if (successStatuses.length === statuses.data.length) {
+          statuses.data.forEach(status => {
+            if (urlRegex.test(status.target_url)) {
+              return status;
+            }
+          });
+        } else {
+          throw new StatusError('Not all statuses are successful');
+        }
       }
-
-      if (status && allowInactive === true && status.state === 'inactive') {
-        return status;
-      }
-
-      if (status && status.state !== 'success') {
-        throw new StatusError('No status with state "success" was available');
-      }
-
-      if (status && status.state === 'success') {
-        return status;
-      }
-
       throw new StatusError('Unknown status error');
     } catch (e) {
       console.log(
-        `Deployment unavailable or not successful, retrying (attempt ${
-          i + 1
+        `Deployment unavailable or not successful, retrying (attempt ${i + 1
         } / ${iterations})`
       );
       if (e instanceof StatusError) {
@@ -229,14 +246,12 @@ const waitForDeploymentToStart = async ({
       }
 
       console.log(
-        `Could not find any deployments for actor ${actorName}, retrying (attempt ${
-          i + 1
+        `Could not find any deployments for actor ${actorName}, retrying (attempt ${i + 1
         } / ${iterations})`
       );
-    } catch(e) {
+    } catch (e) {
       console.log(
-        `Error while fetching deployments, retrying (attempt ${
-          i + 1
+        `Error while fetching deployments, retrying (attempt ${i + 1
         } / ${iterations})`
       );
 
@@ -286,6 +301,8 @@ const run = async () => {
     const PATH = core.getInput('path') || '/';
     const CHECK_INTERVAL_IN_MS =
       (Number(core.getInput('check_interval')) || 2) * 1000;
+    const AWAIT_ALL = Boolean(core.getInput('await_all')) || false;
+    const URL_REGEX = core.getInput('url_regex') || '.*';
 
     // Fail if we have don't have a github token
     if (!GITHUB_TOKEN) {
@@ -344,6 +361,8 @@ const run = async () => {
       maxTimeout: MAX_TIMEOUT,
       allowInactive: ALLOW_INACTIVE,
       checkIntervalInMilliseconds: CHECK_INTERVAL_IN_MS,
+      awaitAll: AWAIT_ALL,
+      urlRegex: URL_REGEX,
     });
 
     // Get target url

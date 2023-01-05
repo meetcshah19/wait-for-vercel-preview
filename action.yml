@@ -27,6 +27,13 @@ inputs:
     description: 'The path to check. Defaults to the index of the domain'
     default: '/'
     required: false
+  await_all:
+    description: 'Wait for all deployments to finish'
+    default: false
+    required: false
+  url_regex:
+    description: 'Regex to choose which URL among all deplments is supposed to be the output'
+    required: false
 
 outputs:
   url:
