@@ -32,7 +32,7 @@ inputs:
     default: false
     required: false
   url_regex:
-    description: 'Regex to choose which URL among all deplments is supposed to be the output'
+    description: 'Regex to choose which URL among all deployments is supposed to be the output'
     required: false
 
 outputs:

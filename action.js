@@ -130,6 +130,7 @@ const waitForStatus = async ({
     maxTimeout,
     checkIntervalInMilliseconds
   );
+  var url_regex = new RegExp(urlRegex);
 
   for (let i = 0; i < iterations; i++) {
     try {
@@ -141,11 +142,11 @@ const waitForStatus = async ({
       console.log(statuses);
       if (!awaitAll) {
         const status = statuses.data.forEach(s => {
-          if (urlRegex.test(s.target_url)) {
+          if (url_regex.test(s.target_url)) {
             return s;
           }
         });
-        
+
         if (!status) {
           throw new StatusError('No status was available');
         }
@@ -165,7 +166,7 @@ const waitForStatus = async ({
         const successStatuses = statuses.data.filter(status => status.state === 'success');
         if (successStatuses.length === statuses.data.length) {
           statuses.data.forEach(status => {
-            if (urlRegex.test(status.target_url)) {
+            if (url_regex.test(status.target_url)) {
               return status;
             }
           });
