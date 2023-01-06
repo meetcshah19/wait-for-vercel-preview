@@ -241,6 +241,8 @@ const waitForDeploymentToStart = async ({
           i + 1
         } / ${iterations})`
       );
+
+      console.log("Deployments: ",JSON.stringify(deployments))
     } catch(e) {
       console.log(
         `Error while fetching deployments, retrying (attempt ${
