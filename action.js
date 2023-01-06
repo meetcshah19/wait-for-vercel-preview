@@ -122,15 +122,12 @@ const waitForStatus = async ({
   maxTimeout,
   allowInactive,
   checkIntervalInMilliseconds,
-  awaitAll,
-  urlRegex
 }) => {
   const octokit = new github.getOctokit(token);
   const iterations = calculateIterations(
     maxTimeout,
     checkIntervalInMilliseconds
   );
-  var url_regex = new RegExp(urlRegex);
 
   for (let i = 0; i < iterations; i++) {
     try {
@@ -139,45 +136,30 @@ const waitForStatus = async ({
         repo,
         deployment_id,
       });
-      console.log(statuses);
-      if (!awaitAll) {
-        const status = statuses.data.forEach(s => {
-          if (url_regex.test(s.target_url)) {
-            return s;
-          }
-        });
 
-        if (!status) {
-          throw new StatusError('No status was available');
-        }
+      const status = statuses.data.length > 0 && statuses.data[0];
 
-        if (status && allowInactive === true && status.state === 'inactive') {
-          return status;
-        }
-
-        if (status && status.state !== 'success') {
-          throw new StatusError('No status with state "success" was available');
-        }
-
-        if (status && status.state === 'success') {
-          return status;
-        }
-      } else {
-        const successStatuses = statuses.data.filter(status => status.state === 'success');
-        if (successStatuses.length === statuses.data.length) {
-          statuses.data.forEach(status => {
-            if (url_regex.test(status.target_url)) {
-              return status;
-            }
-          });
-        } else {
-          throw new StatusError('Not all statuses are successful');
-        }
+      if (!status) {
+        throw new StatusError('No status was available');
       }
+
+      if (status && allowInactive === true && status.state === 'inactive') {
+        return status;
+      }
+
+      if (status && status.state !== 'success') {
+        throw new StatusError('No status with state "success" was available');
+      }
+
+      if (status && status.state === 'success') {
+        return status;
+      }
+
       throw new StatusError('Unknown status error');
     } catch (e) {
       console.log(
-        `Deployment unavailable or not successful, retrying (attempt ${i + 1
+        `Deployment unavailable or not successful, retrying (attempt ${
+          i + 1
         } / ${iterations})`
       );
       if (e instanceof StatusError) {
@@ -221,11 +203,13 @@ const waitForDeploymentToStart = async ({
   actorName = 'vercel[bot]',
   maxTimeout = 20,
   checkIntervalInMilliseconds = 2000,
+  nameRegex,
 }) => {
   const iterations = calculateIterations(
     maxTimeout,
     checkIntervalInMilliseconds
   );
+  const name_regex = new RegExp(nameRegex);
 
   for (let i = 0; i < iterations; i++) {
     try {
@@ -235,11 +219,11 @@ const waitForDeploymentToStart = async ({
         sha,
         environment,
       });
-      console.log(JSON.stringify(deployments));
+
       const deployment =
         deployments.data.length > 0 &&
         deployments.data.find((deployment) => {
-          return deployment.creator.login === actorName;
+          return deployment.creator.login === actorName && name_regex.test(deployment.environment);
         });
 
       if (deployment) {
@@ -247,12 +231,14 @@ const waitForDeploymentToStart = async ({
       }
 
       console.log(
-        `Could not find any deployments for actor ${actorName}, retrying (attempt ${i + 1
+        `Could not find any deployments for actor ${actorName}, retrying (attempt ${
+          i + 1
         } / ${iterations})`
       );
-    } catch (e) {
+    } catch(e) {
       console.log(
-        `Error while fetching deployments, retrying (attempt ${i + 1
+        `Error while fetching deployments, retrying (attempt ${
+          i + 1
         } / ${iterations})`
       );
 
@@ -302,8 +288,8 @@ const run = async () => {
     const PATH = core.getInput('path') || '/';
     const CHECK_INTERVAL_IN_MS =
       (Number(core.getInput('check_interval')) || 2) * 1000;
-    const AWAIT_ALL = Boolean(core.getInput('await_all')) || false;
-    const URL_REGEX = core.getInput('url_regex') || '.*';
+    const DEPLOYMENTS = core.getInput('deployments') || '[]';
+    console.log('DEPLOYMENTS', DEPLOYMENTS);
 
     // Fail if we have don't have a github token
     if (!GITHUB_TOKEN) {
@@ -336,30 +322,26 @@ const run = async () => {
       core.setFailed('Unable to determine SHA. Exiting...');
       return;
     }
-
+    let deployment;
     // Get deployments associated with the pull request.
-    const deployment = await waitForDeploymentToStart({
-      octokit,
-      owner,
-      repo,
-      sha: sha,
-      environment: ENVIRONMENT,
-      actorName: 'vercel[bot]',
-      maxTimeout: MAX_TIMEOUT,
-      checkIntervalInMilliseconds: CHECK_INTERVAL_IN_MS,
-    });
-
+    for(const dep of JSON.parse(DEPLOYMENTS)) {
+      deployment = await waitForDeploymentToStart({
+        octokit,
+        owner,
+        repo,
+        sha: sha,
+        environment: ENVIRONMENT,
+        actorName: 'vercel[bot]',
+        maxTimeout: MAX_TIMEOUT,
+        checkIntervalInMilliseconds: CHECK_INTERVAL_IN_MS,
+        nameRegex: DEPLOYMENTS[dep],
+      });
+      console.log("found deployment: ", deployment)
+    }
     if (!deployment) {
       core.setFailed('no vercel deployment found, exiting...');
       return;
     }
-    console.log("url regex:",URL_REGEX);
-
-    console.log(JSON.stringify(octokit.rest.repos.listDeploymentStatuses({
-      owner,
-      repo,
-      deployment_id: deployment.id,
-    })));
 
     const status = await waitForStatus({
       owner,
@@ -369,8 +351,6 @@ const run = async () => {
       maxTimeout: MAX_TIMEOUT,
       allowInactive: ALLOW_INACTIVE,
       checkIntervalInMilliseconds: CHECK_INTERVAL_IN_MS,
-      awaitAll: AWAIT_ALL,
-      urlRegex: URL_REGEX,
     });
 
     // Get target url
@@ -384,8 +364,8 @@ const run = async () => {
     console.log('target url »', targetUrl);
 
     // Set output
-    core.setOutput('url', targetUrl);
-
+    // core.setOutput('url', targetUrl);
+    core.setOutput('urls', {"demo":"demo","ladle":"ladle"});
     // Wait for url to respond with a success
     console.log(`Waiting for a status code 200 from: ${targetUrl}`);
 

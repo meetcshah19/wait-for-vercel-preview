@@ -27,17 +27,13 @@ inputs:
     description: 'The path to check. Defaults to the index of the domain'
     default: '/'
     required: false
-  await_all:
-    description: 'Wait for all deployments to finish'
-    default: false
-    required: false
-  url_regex:
-    description: 'Regex to choose which URL among all deployments is supposed to be the output'
+  deployments:
+    description: ''
     required: false
 
 outputs:
-  url:
-    description: 'The fully qualified deploy preview URL'
+  urls:
+    description: 'Urls matching deployment regex (comma seperated)'
   vercel_jwt:
     description: 'If the deployment is using password protection, this will be a JWT. Otherwise, outputs an empty string'
 runs:
