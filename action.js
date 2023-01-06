@@ -210,6 +210,7 @@ const waitForDeploymentToStart = async ({
     checkIntervalInMilliseconds
   );
   const name_regex = new RegExp(nameRegex);
+  console.log("regex",name_regex)
 
   for (let i = 0; i < iterations; i++) {
     try {
@@ -223,6 +224,7 @@ const waitForDeploymentToStart = async ({
       const deployment =
         deployments.data.length > 0 &&
         deployments.data.find((deployment) => {
+          console.log("dep:",deployment.creator.login, actorName, name_regex.test(deployment.environment));
           return deployment.creator.login === actorName && name_regex.test(deployment.environment);
         });
 
@@ -236,7 +238,6 @@ const waitForDeploymentToStart = async ({
         } / ${iterations})`
       );
 
-      console.log("Deployments: ",JSON.stringify(deployments))
     } catch(e) {
       console.log(
         `Error while fetching deployments, retrying (attempt ${
