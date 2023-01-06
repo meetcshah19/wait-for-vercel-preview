@@ -224,7 +224,7 @@ const waitForDeploymentToStart = async ({
       const deployment =
         deployments.data.length > 0 &&
         deployments.data.find((deployment) => {
-          console.log("dep:",deployment.creator.login, actorName, name_regex.test(deployment.environment));
+          console.log("dep:",deployment.creator.login, actorName, name_regex.test(deployment.environment), deployment.environment);
           return deployment.creator.login === actorName && name_regex.test(deployment.environment);
         });
 
