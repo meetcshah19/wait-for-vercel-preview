@@ -27,7 +27,7 @@ inputs:
     description: 'The path to check. Defaults to the index of the domain'
     default: '/'
     required: false
-  deployments:
+  regex:
     description: ''
     required: false
 

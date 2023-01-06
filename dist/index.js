@@ -292,10 +292,10 @@ const run = async () => {
     const MAX_TIMEOUT = Number(core.getInput('max_timeout')) || 60;
     const ALLOW_INACTIVE = Boolean(core.getInput('allow_inactive')) || false;
     const PATH = core.getInput('path') || '/';
+    const REGEX = core.getInput('regex') || '.*';
+
     const CHECK_INTERVAL_IN_MS =
       (Number(core.getInput('check_interval')) || 2) * 1000;
-    const DEPLOYMENTS = core.getInput('deployments') || '[]';
-    console.log('DEPLOYMENTS', DEPLOYMENTS);
 
     // Fail if we have don't have a github token
     if (!GITHUB_TOKEN) {
@@ -328,22 +328,20 @@ const run = async () => {
       core.setFailed('Unable to determine SHA. Exiting...');
       return;
     }
-    let deployment;
+
     // Get deployments associated with the pull request.
-    for(const dep of JSON.parse(DEPLOYMENTS)) {
-      deployment = await waitForDeploymentToStart({
-        octokit,
-        owner,
-        repo,
-        sha: sha,
-        environment: ENVIRONMENT,
-        actorName: 'vercel[bot]',
-        maxTimeout: MAX_TIMEOUT,
-        checkIntervalInMilliseconds: CHECK_INTERVAL_IN_MS,
-        nameRegex: DEPLOYMENTS[dep],
-      });
-      console.log("found deployment: ", deployment)
-    }
+    const deployment = await waitForDeploymentToStart({
+      octokit,
+      owner,
+      repo,
+      sha: sha,
+      environment: ENVIRONMENT,
+      actorName: 'vercel[bot]',
+      maxTimeout: MAX_TIMEOUT,
+      checkIntervalInMilliseconds: CHECK_INTERVAL_IN_MS,
+      nameRegex: REGEX,
+    });
+
     if (!deployment) {
       core.setFailed('no vercel deployment found, exiting...');
       return;
@@ -370,8 +368,8 @@ const run = async () => {
     console.log('target url »', targetUrl);
 
     // Set output
-    // core.setOutput('url', targetUrl);
-    core.setOutput('urls', {"demo":"demo","ladle":"ladle"});
+    core.setOutput('url', targetUrl);
+
     // Wait for url to respond with a success
     console.log(`Waiting for a status code 200 from: ${targetUrl}`);
 
