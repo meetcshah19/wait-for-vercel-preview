@@ -203,11 +203,13 @@ const waitForDeploymentToStart = async ({
   actorName = 'vercel[bot]',
   maxTimeout = 20,
   checkIntervalInMilliseconds = 2000,
+  nameRegex,
 }) => {
   const iterations = calculateIterations(
     maxTimeout,
     checkIntervalInMilliseconds
   );
+  const name_regex = new RegExp(nameRegex);
 
   for (let i = 0; i < iterations; i++) {
     try {
@@ -221,7 +223,7 @@ const waitForDeploymentToStart = async ({
       const deployment =
         deployments.data.length > 0 &&
         deployments.data.find((deployment) => {
-          return deployment.creator.login === actorName;
+          return deployment.creator.login === actorName && name_regex.test(deployment.environment);
         });
 
       if (deployment) {
@@ -233,6 +235,7 @@ const waitForDeploymentToStart = async ({
           i + 1
         } / ${iterations})`
       );
+
     } catch(e) {
       console.log(
         `Error while fetching deployments, retrying (attempt ${
@@ -284,6 +287,8 @@ const run = async () => {
     const MAX_TIMEOUT = Number(core.getInput('max_timeout')) || 60;
     const ALLOW_INACTIVE = Boolean(core.getInput('allow_inactive')) || false;
     const PATH = core.getInput('path') || '/';
+    const REGEX = core.getInput('regex') || '.*';
+
     const CHECK_INTERVAL_IN_MS =
       (Number(core.getInput('check_interval')) || 2) * 1000;
 
@@ -329,6 +334,7 @@ const run = async () => {
       actorName: 'vercel[bot]',
       maxTimeout: MAX_TIMEOUT,
       checkIntervalInMilliseconds: CHECK_INTERVAL_IN_MS,
+      nameRegex: REGEX,
     });
 
     if (!deployment) {

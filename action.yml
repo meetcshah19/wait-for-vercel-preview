@@ -1,4 +1,4 @@
-name: 'Wait for Vercel Preview'
+name: 'Wait for Vercel Preview Test'
 description: 'Wait for Vercel Deploy Preview to complete. Requires to be run on pull_request or push.'
 branding:
   icon: 'clock'
@@ -26,6 +26,9 @@ inputs:
   path:
     description: 'The path to check. Defaults to the index of the domain'
     default: '/'
+    required: false
+  regex:
+    description: 'Regex on vercel deployment name to choose which deployment to wait for. Useful for multiple deployments'
     required: false
 
 outputs:
